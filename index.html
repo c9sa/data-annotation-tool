@@ -1,0 +1,815 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data Labeller</title>
+<link rel="preload" href="/assets/Geist-Variable.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+  @font-face {
+    font-family: "Geist";
+    src: url("/assets/Geist-Variable.woff2") format("woff2");
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+  }
+  :root {
+    color-scheme: light;
+    font: 15px/1.5 "Geist", sans-serif;
+    font-synthesis: none;
+    font-feature-settings: "tnum" 1;
+    --page: #f7f8fa;
+    --surface: #fff;
+    --surface-subtle: #f1f3f6;
+    --line: #e1e5ea;
+    --line-strong: #cbd2dc;
+    --ink: #171b22;
+    --muted: #68717e;
+    --accent: #285f9e;
+    --accent-hover: #204c80;
+    --accent-soft: #eaf0f7;
+    --primary-bg: #285f9e;
+    --primary-hover: #204c80;
+    --primary-ink: #fff;
+    --danger: #a33b35;
+    --danger-soft: #f8eeed;
+    --success: #236844;
+    --focus: #285f9e;
+    color: var(--ink);
+    background: var(--page);
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #15181e;
+    --surface: #1c2028;
+    --surface-subtle: #242a34;
+    --line: #313944;
+    --line-strong: #485260;
+    --ink: #eff2f6;
+    --muted: #a3acb9;
+    --accent: #a8c7ed;
+    --accent-hover: #c4d9f2;
+    --accent-soft: #273545;
+    --primary-bg: #416e9f;
+    --primary-hover: #527fae;
+    --primary-ink: #fff;
+    --danger: #f0a29a;
+    --danger-soft: #3b2728;
+    --success: #92d0a7;
+    --focus: #b4d3f8;
+    color: var(--ink);
+    background: var(--page);
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { min-width: 320px; margin: 0; color: var(--ink); background: var(--page); }
+  main { width: min(1440px, calc(100% - 72px)); margin: auto; padding: 22px 0 52px; }
+  button, select, textarea, .button-link { font: inherit; }
+  header, .row, .toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .app-header { gap: 22px; min-height: 48px; margin-bottom: 12px; padding: 0 0 10px; border-bottom: 1px solid var(--line); }
+  .brand { flex: 1 1 auto; }
+  h1 { display: flex; flex-direction: column; gap: 1px; margin: 0; font-size: 14px; font-weight: 600; line-height: 1.02; letter-spacing: -.035em; white-space: nowrap; }
+  h2 { margin: 0 0 12px; font-size: 21px; font-weight: 600; letter-spacing: -.025em; line-height: 1.28; }
+  p { margin: 8px 0 16px; }
+  .muted, .hint { color: var(--muted); font-size: 12px; }
+  .header-actions { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+  button, select, .button-link { min-height: 40px; padding: 8px 12px; border: 1px solid var(--line-strong); border-radius: 6px; color: var(--ink); background: var(--surface); }
+  button, .button-link { cursor: pointer; }
+  button:hover:not(:disabled), .button-link:hover { border-color: var(--accent); }
+  button:disabled { opacity: .48; cursor: default; }
+  button.primary { border-color: var(--primary-bg); color: var(--primary-ink); background: var(--primary-bg); }
+  button.primary:hover:not(:disabled) { border-color: var(--primary-hover); background: var(--primary-hover); }
+  button.quiet, .button-link.quiet { border-color: transparent; color: var(--muted); background: transparent; }
+  button.quiet:hover:not(:disabled), .button-link.quiet:hover { border-color: transparent; color: var(--ink); background: var(--surface-subtle); }
+  button.small { min-height: 34px; padding: 5px 9px; font-size: 12px; }
+  button.icon-button { display: inline-grid; width: 36px; min-height: 36px; place-items: center; padding: 7px; border-color: transparent; color: var(--muted); background: transparent; }
+  button.icon-button:hover:not(:disabled) { border-color: var(--line); color: var(--ink); background: var(--surface-subtle); }
+  .icon { display: block; width: 16px; height: 16px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+  .with-icon { display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; }
+  .button-link { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+  button:focus-visible, select:focus-visible, textarea:focus-visible,
+  a:focus-visible, summary:focus-visible, .choice input:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+  .notice { margin: 0 0 18px; padding: 0; color: var(--danger); font-size: 13px; }
+  .notice:empty { display: none; }
+  .notice:not(:empty) { padding: 10px 12px; border-left: 2px solid var(--danger); background: var(--danger-soft); }
+  .notice.ok { border-left-color: var(--success); color: var(--success); background: var(--surface-subtle); }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+  .home-view, .setup-view { width: min(100%, 760px); margin: 0 auto; }
+  .page-intro { margin: 10px 0 26px; }
+  .page-intro h2 { margin: 0; font-size: 27px; letter-spacing: -.04em; }
+  .page-intro p:last-child { margin: 5px 0 0; color: var(--muted); }
+  .panel { padding: 0; border: 0; border-radius: 0; background: transparent; }
+  .drop { display: flex; min-height: 210px; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 28px; border: 1px dashed var(--line-strong); border-radius: 9px; text-align: center; background: var(--surface); }
+  .drop p { margin: 0; font-size: 15px; font-weight: 500; }
+  .drop.over { border-color: var(--accent); background: var(--accent-soft); }
+  .import-note { margin: 12px 0 0; }
+  .recent-panel { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--line); }
+  .recent-panel h2 { margin-bottom: 12px; font-size: 15px; }
+  .recent { display: grid; gap: 6px; }
+  .recent button { text-align: left; overflow-wrap: anywhere; }
+  .setup-panel { padding: 2px 0 0; }
+  label.field { display: block; margin: 22px 0; }
+  label.field span { display: block; margin-bottom: 7px; font-weight: 500; }
+  select { min-width: 220px; }
+  textarea { width: 100%; min-height: 142px; padding: 11px; resize: vertical; border: 1px solid var(--line-strong); border-radius: 6px; color: var(--ink); background: var(--surface); }
+  .setup-note { margin: -2px 0 16px; }
+  .choice { display: flex; gap: 20px; flex-wrap: wrap; margin: 16px 0 0; }
+  .choice label { display: flex; flex: 1; min-width: 200px; align-items: center; gap: 8px; padding: 8px 0; cursor: pointer; }
+  .choice input { accent-color: var(--primary-bg); }
+  .setup-actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 26px; }
+  .work-view { width: min(100%, 850px); margin: 0 auto; }
+  .work-toolbar { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; margin: 0 0 14px; }
+  .mode-switch { display: flex; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface-subtle); }
+  .mode-switch button { min-height: 34px; padding: 6px 10px; border-color: transparent; color: var(--muted); background: transparent; font-size: 12px; }
+  .mode-switch button:hover:not(:disabled) { border-color: transparent; color: var(--ink); background: var(--surface); }
+  .mode-switch button.active { border-color: var(--line); color: var(--ink); background: var(--surface); box-shadow: 0 1px 2px #10182812; }
+  #position { min-width: 0; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; text-align: center; white-space: nowrap; }
+  .message { height: clamp(220px, 34vh, 360px); overflow: auto; padding: clamp(22px, 4vw, 36px); border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  #message-text { max-width: 76ch; margin: 0; font-size: 22px; font-weight: 400; line-height: 1.58; text-align: left; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .labels { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 12px 0 0; }
+  .labels button { display: flex; width: 100%; max-width: 220px; min-width: 0; min-height: 48px; align-items: center; gap: 10px; padding: 8px 10px; text-align: left; overflow-wrap: anywhere; }
+  .labels button.chosen { border-color: var(--primary-bg); color: var(--primary-ink); background: var(--primary-bg); }
+  .labels button.secondary { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+  .labels button.chosen::after, .labels button.secondary::after { margin-left: auto; font-size: 10px; font-weight: 500; }
+  .labels button.chosen::after { color: var(--primary-ink); content: "Primary"; }
+  .labels button.secondary::after { color: var(--accent); content: "Secondary"; }
+  .key { display: inline-block; min-width: 18px; padding-right: 8px; border-right: 1px solid currentColor; color: inherit; font-size: 11px; text-align: center; opacity: .8; }
+  .actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 4px; padding-top: 10px; }
+  .secondary-actions { display: flex; align-items: center; gap: 4px; }
+  .secondary-actions button { position: relative; display: grid; width: 44px; min-height: 44px; flex: 0 0 44px; place-items: center; padding: 9px; }
+  .secondary-actions .icon { width: 18px; height: 18px; }
+  .icon-action::after { position: absolute; z-index: 6; bottom: calc(100% + 5px); left: 50%; max-width: min(220px, calc(100vw - 24px)); padding: 5px 8px; transform: translateX(-50%); border: 1px solid var(--line-strong); border-radius: 5px; color: var(--surface); background: var(--ink); content: attr(data-tooltip); font-size: 11px; font-weight: 500; line-height: 1.3; text-align: center; white-space: nowrap; visibility: hidden; opacity: 0; pointer-events: none; }
+  .icon-action:hover::after, .icon-action:focus-visible::after { visibility: visible; opacity: 1; }
+  .secondary-actions button:first-child::after { left: 0; transform: none; }
+  .secondary-actions button:last-child::after { right: 0; left: auto; transform: none; }
+  .icon-action[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+  #save { min-width: 96px; }
+  .header-menu, .export-menu { position: relative; }
+  .header-menu summary, .export-menu summary { display: inline-flex; min-height: 36px; align-items: center; gap: 7px; padding: 6px 9px; border: 1px solid transparent; border-radius: 6px; color: var(--muted); cursor: pointer; font-size: 12px; list-style: none; user-select: none; }
+  .header-menu summary::-webkit-details-marker, .export-menu summary::-webkit-details-marker { display: none; }
+  .header-menu summary:hover, .export-menu summary:hover { color: var(--ink); background: var(--surface-subtle); }
+  .menu-popover { position: absolute; z-index: 5; top: calc(100% + 7px); right: 0; width: min(340px, calc(100vw - 32px)); padding: 15px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: 0 8px 24px #1018281a; }
+  .more-menu > .menu-popover { display: grid; gap: 2px; max-height: min(70vh, 560px); overflow-y: auto; padding: 8px; }
+  .more-menu > .menu-popover > .header-menu { position: static; }
+  .more-menu > .menu-popover > .header-menu > summary { width: 100%; justify-content: flex-start; padding: 7px 9px; }
+  .more-menu > .menu-popover > .header-menu > .menu-popover { position: static; width: 100%; margin: 0 0 6px; padding: 10px; border: 0; background: var(--surface-subtle); box-shadow: none; }
+  .more-actions { display: grid; gap: 2px; margin-top: 4px; padding-top: 7px; border-top: 1px solid var(--line); }
+  .more-actions button { width: 100%; justify-content: flex-start; padding-inline: 9px; }
+  .menu-popover h2 { margin: 0 0 10px; font-size: 13px; }
+  .message-queues { display: grid; gap: 14px; width: min(360px, calc(100vw - 32px)); max-height: min(70vh, 560px); overflow-y: auto; }
+  .message-queue h2 { margin: 0 0 5px; font-size: 12px; font-weight: 600; }
+  .message-list { display: grid; max-height: min(25vh, 220px); gap: 3px; overflow-y: auto; margin: 0; padding: 0; list-style: none; }
+  .queue-item { display: flex; width: 100%; min-height: 36px; align-items: flex-start; gap: 9px; padding: 7px 8px; border-color: transparent; text-align: left; font-size: 12px; }
+  .queue-number { flex: 0 0 2.4em; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .queue-preview { display: -webkit-box; min-width: 0; overflow: hidden; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+  .queue-empty { margin: 0; padding: 3px 8px; color: var(--muted); font-size: 12px; }
+  .detail-list, .shortcut-list { display: grid; grid-template-columns: auto 1fr; gap: 7px 14px; margin: 0; font-size: 12px; }
+  .detail-list dt, .shortcut-list dt { color: var(--muted); }
+  .detail-list dd, .shortcut-list dd { min-width: 0; margin: 0; overflow-wrap: anywhere; }
+  .shortcut-list kbd { color: var(--ink); font: inherit; font-weight: 500; white-space: nowrap; }
+  .export-link { display: block; padding: 8px 10px; border-radius: 5px; color: var(--ink); text-decoration: none; font-size: 13px; }
+  .export-link:hover { color: var(--accent); background: var(--surface-subtle); }
+  .key { font-variant-numeric: tabular-nums; }
+  @media (max-width: 980px) {
+    .app-header { gap: 14px; }
+  }
+  @media (max-width: 760px) {
+    main { width: min(100% - 40px, 680px); }
+    .labels { grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr)); }
+  }
+  @media (max-width: 560px) {
+    main { width: calc(100% - 32px); padding-top: 14px; }
+    .app-header { gap: 10px; margin-bottom: 12px; }
+    .header-actions { gap: 4px; flex-wrap: nowrap; }
+    .header-menu summary { padding: 6px; }
+    .home-view, .setup-view { width: 100%; }
+    .page-intro { margin: 8px 0 20px; }
+    .page-intro h2 { font-size: 24px; }
+    .drop { min-height: 180px; padding: 22px 14px; }
+    .choice { flex-direction: column; gap: 4px; }
+    .choice label { min-width: 0; }
+    .work-toolbar { grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+    .mode-switch { grid-column: 1 / -1; width: 100%; }
+    .mode-switch button { flex: 1; padding: 6px; }
+    #position { text-align: left; }
+    .message { height: clamp(210px, 32vh, 320px); padding: 22px; }
+    #message-text { font-size: 20px; }
+    .labels { gap: 6px; }
+    .labels button { min-height: 48px; padding: 8px; gap: 7px; }
+    .labels button::after { font-size: 9px; }
+    .secondary-actions { width: 100%; justify-content: space-between; gap: 0; }
+    #save { margin-left: auto; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header class="app-header">
+    <div class="brand"><h1><span>Data</span><span>Labeller</span></h1></div>
+    <div class="header-actions">
+      <button class="icon-button" id="theme-toggle" type="button" aria-label="Switch theme" title="Switch theme">
+        <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.2 15.1A8.2 8.2 0 0 1 8.9 3.8 8.2 8.2 0 1 0 20.2 15.1Z"></path></svg>
+      </button>
+      <details class="header-menu more-menu" id="more-menu">
+        <summary title="More options" aria-label="More options">
+          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></svg>
+          <span>More</span>
+        </summary>
+        <div class="menu-popover">
+          <details class="header-menu" id="file-menu" hidden>
+            <summary title="File and dataset details" aria-label="File and dataset details">
+              <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M7 3.75h6l4 4v12.5H7z"></path><path d="M13 3.75v4h4M9.5 12h5M9.5 15h5"></path></svg>
+              <span>Details</span>
+            </summary>
+            <div class="menu-popover">
+              <h2>File details</h2>
+              <dl class="detail-list">
+                <dt>File</dt><dd id="detail-file"></dd>
+                <dt>Working copy</dt><dd id="work-path"></dd>
+                <dt>Text column</dt><dd id="detail-column"></dd>
+                <dt>Rows</dt><dd id="detail-rows"></dd>
+                <dt>Label mode</dt><dd id="detail-mode"></dd>
+              </dl>
+            </div>
+          </details>
+          <details class="header-menu" id="help-menu">
+            <summary title="Keyboard shortcuts" aria-label="Keyboard shortcuts">
+              <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M9.7 9a2.4 2.4 0 1 1 3.9 1.9c-.9.7-1.6 1.1-1.6 2.4M12 16.7v.1"></path></svg>
+              <span>Help</span>
+            </summary>
+            <div class="menu-popover">
+              <h2>Keyboard shortcuts</h2>
+              <dl class="shortcut-list">
+                <dt><kbd>1–9</kbd></dt><dd>Fast: save + next · Review: set primary</dd>
+                <dt><kbd>Shift+1–9</kbd></dt><dd>Add secondary in Review</dd>
+                <dt><kbd>Enter</kbd></dt><dd>Save and next</dd>
+                <dt><kbd>← / →</kbd></dt><dd>Previous / next</dd>
+                <dt><kbd>S · R · U</kbd></dt><dd>Skip · flag · undo</dd>
+              </dl>
+            </div>
+          </details>
+          <details class="header-menu" id="export-menu">
+            <summary aria-label="Export">
+              <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3.5v11m-4-4 4 4 4-4"></path><path d="M5 15.5v4h14v-4"></path></svg>
+              <span>Export</span>
+            </summary>
+            <div class="menu-popover">
+              <a class="export-link" href="/api/download" download>Labeled file</a>
+              <a class="export-link" href="/api/training" download>Training CSV</a>
+            </div>
+          </details>
+          <div class="more-actions">
+            <button class="small quiet with-icon" id="settings" type="button" aria-label="Edit labels and mode" title="Edit labels and mode" hidden>
+              <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Z"></path><path d="m19.3 13.8 1.1.9-1.5 2.6-1.4-.5a7.6 7.6 0 0 1-1.6.9l-.3 1.5h-3l-.3-1.5a7.6 7.6 0 0 1-1.6-.9l-1.4.5-1.5-2.6 1.1-.9a7.4 7.4 0 0 1 0-1.8l-1.1-.9 1.5-2.6 1.4.5a7.6 7.6 0 0 1 1.6-.9l.3-1.5h3l.3 1.5a7.6 7.6 0 0 1 1.6.9l1.4-.5 1.5 2.6-1.1.9a7.4 7.4 0 0 1 0 1.8Z" transform="translate(-1 -1)"></path></svg>
+              <span>Labels</span>
+            </button>
+            <button class="small quiet with-icon" id="new-file" type="button" aria-label="Open another file" title="Open another file" hidden>
+              <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M4 8.5V6.8A1.8 1.8 0 0 1 5.8 5H10l2 2h6.2A1.8 1.8 0 0 1 20 8.8v8.4a1.8 1.8 0 0 1-1.8 1.8H5.8A1.8 1.8 0 0 1 4 17.2v-1.7"></path><path d="M2.5 12h8m-3-3 3 3-3 3"></path></svg>
+              <span>Open file</span>
+            </button>
+          </div>
+        </div>
+      </details>
+    </div>
+  </header>
+  <p id="notice" class="notice" role="status" aria-live="polite"></p>
+
+  <section id="home" class="home-view" hidden>
+    <div class="page-intro">
+      <h2>Open a file</h2>
+    </div>
+    <div class="panel import-panel">
+      <div class="drop" id="drop">
+        <p>Drop a CSV or JSON file</p>
+        <div class="row">
+          <button id="choose-file" class="primary with-icon">
+            <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M7 3.75h6l4 4v12.5H7z"></path><path d="M13 3.75v4h4M9.5 13h5M12 10.5v5"></path></svg>
+            Browse files
+          </button>
+          <button id="choose-folder" class="quiet">Choose folder</button>
+        </div>
+      </div>
+      <input id="file-input" type="file" accept=".csv,.json" hidden>
+      <input id="folder-input" type="file" webkitdirectory directory multiple hidden>
+      <div id="folder-pick" class="row" hidden>
+        <select id="folder-files" aria-label="CSV or JSON file in folder"></select>
+        <button id="use-folder-file" class="quiet">Open selected file</button>
+      </div>
+      <p class="hint import-note">A local working copy is saved; the original stays untouched.</p>
+    </div>
+    <div class="panel recent-panel" id="recent-panel" hidden>
+      <h2>Recent files</h2>
+      <div id="recent" class="recent"></div>
+    </div>
+  </section>
+
+  <section id="setup" class="setup-view" hidden>
+    <div class="page-intro">
+      <h2>Set up labels</h2>
+    </div>
+    <div class="panel setup-panel">
+      <label class="field"><span>Text column</span><select id="text-column"></select></label>
+      <label class="field"><span>Labels (one per line)</span>
+        <textarea id="label-names" spellcheck="false"></textarea>
+      </label>
+      <p class="hint setup-note">Keep existing labels. 1–9 works for up to nine labels.</p>
+      <div class="choice">
+        <label><input type="radio" name="label-mode" value="single" checked>Single label</label>
+        <label><input type="radio" name="label-mode" value="multi">Multiple labels</label>
+      </div>
+      <div class="setup-actions">
+        <button id="setup-back" class="quiet">Back</button>
+        <button id="start" class="primary">Start labeling</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="work" class="work-view" hidden>
+    <div class="work-toolbar">
+      <div class="mode-switch" role="group" aria-label="Annotation mode">
+        <button class="small" id="fast-mode">Fast pass</button>
+        <button class="small" id="review-mode" aria-label="Review all and use multiple labels" title="Review all and use multiple labels">Review</button>
+      </div>
+      <div class="toolbar-progress" id="position" aria-live="polite"></div>
+      <details class="header-menu messages-menu" id="messages-menu">
+        <summary aria-label="Messages">
+          <span>Messages</span>
+          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"></path></svg>
+        </summary>
+        <div class="menu-popover message-queues">
+          <section class="message-queue" aria-labelledby="unlabeled-heading">
+            <h2 id="unlabeled-heading">Unlabeled (<span id="unlabeled-count">0</span>)</h2>
+            <ul class="message-list" id="unlabeled-list"></ul>
+            <p class="queue-empty" id="unlabeled-empty" hidden>No unlabeled messages.</p>
+          </section>
+          <section class="message-queue" aria-labelledby="flagged-heading">
+            <h2 id="flagged-heading">Flagged (<span id="flagged-count">0</span>)</h2>
+            <ul class="message-list" id="flagged-list"></ul>
+            <p class="queue-empty" id="flagged-empty" hidden>No flagged messages.</p>
+          </section>
+        </div>
+      </details>
+    </div>
+    <section class="reading-column" aria-labelledby="message-heading">
+      <h2 class="sr-only" id="message-heading">Current message</h2>
+      <article class="message"><div id="message-text"></div></article>
+    </section>
+    <div id="labels" class="labels" role="group" aria-label="Labels"></div>
+    <div class="actions">
+      <div class="secondary-actions" role="group" aria-label="Message actions">
+        <button class="quiet icon-action" id="previous" type="button" aria-label="Previous message (Left Arrow)" aria-keyshortcuts="ArrowLeft" data-tooltip="Previous (←)">
+          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="m14.5 18-6-6 6-6"></path></svg>
+        </button>
+        <button class="quiet icon-action" id="next" type="button" aria-label="Next message (Right Arrow)" aria-keyshortcuts="ArrowRight" data-tooltip="Next (→)">
+          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="m9.5 18 6-6-6-6"></path></svg>
+        </button>
+        <button class="quiet icon-action" id="skip" type="button" aria-label="Skip message (S)" aria-keyshortcuts="S" data-tooltip="Skip (S)">
+          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M4 12h10"></path><path d="m10 8 4 4-4 4"></path><path d="M19 5v14"></path></svg>
+        </button>
+        <button class="quiet icon-action" id="flag" type="button" aria-label="Flag for review (R)" aria-keyshortcuts="R" aria-pressed="false" data-tooltip="Flag for review (R)">
+          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M6 21V4"></path><path d="M6 5h12l-3 4 3 4H6"></path></svg>
+        </button>
+        <button class="quiet icon-action" id="undo" type="button" aria-label="Undo last change (U)" aria-keyshortcuts="U" data-tooltip="Undo (U)">
+          <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"></path><path d="M5 9h7a6 6 0 0 1 6 6v1"></path></svg>
+        </button>
+      </div>
+      <button id="save" class="primary" type="button">Save →</button>
+    </div>
+  </section>
+</main>
+<script>
+  const $ = id => document.getElementById(id);
+  const state = { active: false, recent: [], items: [], labels: [], index: 0, primary: "",
+                  secondary: new Set(), history: [], reviewed: new Set(), busy: false,
+                  view: "home", pass: "fast", folderFiles: [] };
+
+  const SUN_ICON = '<svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"></circle><path d="M12 2.5v2M12 19.5v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2.5 12h2m15 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>';
+  const MOON_ICON = '<svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.2 15.1A8.2 8.2 0 0 1 8.9 3.8 8.2 8.2 0 1 0 20.2 15.1Z"></path></svg>';
+
+  function setTheme(theme) {
+    document.documentElement.dataset.theme = theme;
+    const next = theme === "dark" ? "light" : "dark";
+    const toggle = $("theme-toggle");
+    toggle.innerHTML = theme === "dark" ? SUN_ICON : MOON_ICON;
+    toggle.setAttribute("aria-label", `Switch to ${next} theme`);
+    toggle.title = `Switch to ${next} theme`;
+    toggle.setAttribute("aria-pressed", String(theme === "dark"));
+  }
+
+  const savedTheme = localStorage.getItem("annotation-tool-theme");
+  setTheme(savedTheme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
+  $("theme-toggle").onclick = () => {
+    const theme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+    localStorage.setItem("annotation-tool-theme", theme);
+    setTheme(theme);
+  };
+
+  function notice(message, ok = false) {
+    $("notice").textContent = message;
+    $("notice").classList.toggle("ok", ok);
+  }
+
+  async function api(path, options = {}) {
+    const response = await fetch(path, options);
+    const value = await response.json();
+    if (!response.ok) throw new Error(value.error || "Request failed");
+    return value;
+  }
+
+  function post(path, value) {
+    return api(path, { method: "POST", headers: { "Content-Type": "application/json" },
+                       body: JSON.stringify(value) });
+  }
+
+  function show(view) {
+    if (view !== "work") notice("");
+    state.view = view;
+    $("more-menu").open = false;
+    $("file-menu").open = false;
+    $("help-menu").open = false;
+    $("messages-menu").open = false;
+    for (const id of ["home", "setup", "work"]) $(id).hidden = id !== view;
+    $("file-menu").hidden = view === "home";
+    $("settings").hidden = view !== "work";
+    $("new-file").hidden = view === "home";
+    if (view === "home") renderHome();
+    if (view === "setup") renderSetup();
+    if (view === "work") renderWork();
+  }
+
+  function applyData(value) {
+    Object.assign(state, value);
+    state.index = Math.min(state.index, Math.max(0, state.items.length - 1));
+    state.secondary = new Set();
+  }
+
+  function renderHome() {
+    const recent = $("recent");
+    recent.replaceChildren(...state.recent.map(name => {
+      const button = document.createElement("button");
+      button.textContent = name;
+      button.onclick = () => openRecent(name);
+      return button;
+    }));
+    $("recent-panel").hidden = !state.recent.length;
+  }
+
+  function renderFileDetails() {
+    $("detail-file").textContent = state.filename || "";
+    $("work-path").textContent = state.path || "";
+    $("detail-column").textContent = state.text_column || "";
+    $("detail-rows").textContent = String(state.items.length);
+    $("detail-mode").textContent = state.mode === "single" ? "Single label" : "Multiple labels";
+  }
+
+  function renderSetup() {
+    renderFileDetails();
+    $("label-names").value = state.labels.join("\n");
+    $("text-column").replaceChildren(...state.columns.map(column => {
+      const option = document.createElement("option");
+      option.value = column;
+      option.textContent = column;
+      return option;
+    }));
+    $("text-column").value = state.text_column;
+    document.querySelector(`input[name="label-mode"][value="${state.mode}"]`).checked = true;
+    $("setup-back").textContent = state.configured ? "Back to messages" : "Back to files";
+  }
+
+  function loadItem(index) {
+    if (!state.items.length) return;
+    state.index = Math.max(0, Math.min(index, state.items.length - 1));
+    const item = state.items[state.index];
+    state.primary = item.primary_label || "";
+    state.secondary = new Set(item.secondary_labels || []);
+    notice("");
+    renderWork();
+  }
+
+  function nextMatching(predicate, from = state.index) {
+    for (let step = 1; step <= state.items.length; step++) {
+      const index = (from + step) % state.items.length;
+      if (predicate(state.items[index], index)) return index;
+    }
+    return -1;
+  }
+
+  function nextAfterSave(from, feedback = "Saved.") {
+    let next;
+    if (state.pass === "review") {
+      state.reviewed.add(from);
+      next = nextMatching((item, index) => item.annotation_status !== "skipped" &&
+        !state.reviewed.has(index), from);
+    } else {
+      next = nextMatching(item => !item.annotation_status, from);
+    }
+    if (next >= 0) {
+      loadItem(next);
+      notice(feedback, true);
+    }
+    else {
+      loadItem(from);
+      const message = state.pass === "review" ? "Review pass complete." : "No unlabeled messages remain.";
+      notice(`${message} ${feedback}`, true);
+    }
+  }
+
+  function shortPreview(text) {
+    const preview = String(text || "").replace(/\s+/g, " ").trim();
+    if (!preview) return "(empty message)";
+    return preview.length > 140 ? `${preview.slice(0, 137).trimEnd()}…` : preview;
+  }
+
+  let renderedQueueItems = null;
+  let renderedQueueBusy = null;
+
+  function renderMessageQueues() {
+    if (renderedQueueItems === state.items && renderedQueueBusy === state.busy) return;
+    const groups = [
+      { count: "unlabeled-count", list: "unlabeled-list", empty: "unlabeled-empty",
+        match: item => !item.annotation_status },
+      { count: "flagged-count", list: "flagged-list", empty: "flagged-empty",
+        match: item => item.annotation_status === "needs_review" }
+    ];
+    const menu = $("messages-menu");
+    for (const group of groups) {
+      const matches = state.items
+        .map((item, index) => ({ item, index }))
+        .filter(({ item }) => group.match(item));
+      $(group.count).textContent = String(matches.length);
+      $(group.empty).hidden = matches.length > 0;
+      $(group.list).replaceChildren(...matches.map(({ item, index }) => {
+        const row = document.createElement("li");
+        const button = document.createElement("button");
+        const number = document.createElement("span");
+        const preview = document.createElement("span");
+        const text = shortPreview(item.text);
+        button.type = "button";
+        button.className = "queue-item";
+        button.setAttribute("aria-label", `Message ${index + 1}: ${text}`);
+        button.disabled = state.busy;
+        number.className = "queue-number";
+        number.textContent = String(index + 1);
+        preview.className = "queue-preview";
+        preview.textContent = text;
+        button.append(number, preview);
+        button.onclick = () => {
+          menu.open = false;
+          loadItem(index);
+          menu.querySelector("summary").focus();
+        };
+        row.append(button);
+        return row;
+      }));
+    }
+    renderedQueueItems = state.items;
+    renderedQueueBusy = state.busy;
+  }
+
+  function renderWork() {
+    if (!state.active || !state.items.length) return;
+    const item = state.items[state.index];
+    const labeled = state.items.filter(row => row.annotation_status === "labeled").length;
+    renderFileDetails();
+    $("position").textContent = `${state.index + 1} / ${state.items.length} · ${labeled} labeled`;
+    renderMessageQueues();
+    $("message-text").textContent = item.text;
+    $("fast-mode").classList.toggle("active", state.pass === "fast");
+    $("review-mode").classList.toggle("active", state.pass === "review");
+    $("fast-mode").setAttribute("aria-pressed", String(state.pass === "fast"));
+    $("review-mode").setAttribute("aria-pressed", String(state.pass === "review"));
+    $("fast-mode").disabled = state.mode === "multi" || state.busy;
+    const flagged = item.annotation_status === "needs_review";
+    $("flag").setAttribute("aria-pressed", String(flagged));
+    $("flag").setAttribute("aria-label", `${flagged ? "Flagged" : "Flag"} for review (R)`);
+    $("flag").dataset.tooltip = `${flagged ? "Flagged" : "Flag for review"} (R)`;
+    $("previous").disabled = state.index === 0 || state.busy;
+    $("next").disabled = state.index === state.items.length - 1 || state.busy;
+    $("undo").disabled = !state.history.length || state.busy;
+    $("save").hidden = state.pass === "fast";
+    $("save").disabled = !state.primary || state.busy;
+    for (const id of ["skip", "flag", "review-mode", "settings"]) $(id).disabled = state.busy;
+
+    $("labels").replaceChildren(...state.labels.map((label, index) => {
+      const button = document.createElement("button");
+      if (state.primary === label) button.classList.add("chosen");
+      if (state.secondary.has(label)) button.classList.add("secondary");
+      button.setAttribute("aria-pressed", String(state.primary === label || state.secondary.has(label)));
+      const selection = state.primary === label ? "primary label" :
+        state.secondary.has(label) ? "secondary label" : "not selected";
+      button.setAttribute("aria-label", `${label}: ${selection}`);
+      button.setAttribute("aria-keyshortcuts", state.pass === "review"
+        ? `${index + 1} Shift+${index + 1}` : String(index + 1));
+      const key = document.createElement("span");
+      key.className = "key";
+      key.textContent = `${index + 1}`;
+      button.append(key, document.createTextNode(label));
+      button.onclick = event => event.shiftKey ? toggleSecondary(label) : choosePrimary(label);
+      button.disabled = state.busy;
+      return button;
+    }));
+  }
+
+  function snapshot() {
+    const item = state.items[state.index];
+    return { index: state.index, primary_label: item.primary_label,
+             secondary_labels: [...item.secondary_labels], annotation_status: item.annotation_status };
+  }
+
+  async function persist(change, remember = true) {
+    if (state.busy) return false;
+    const previous = snapshot();
+    state.busy = true;
+    notice("Saving…", true);
+    renderWork();
+    try {
+      const result = await post("/api/annotation", change);
+      if (remember) state.history.push(previous);
+      applyData(result);
+      return true;
+    } catch (error) {
+      notice(error.message);
+      return false;
+    } finally {
+      state.busy = false;
+      renderWork();
+    }
+  }
+
+  async function saveCurrent(primary = state.primary, secondary = [...state.secondary]) {
+    if (!primary) { notice("Choose a primary label first."); return; }
+    const index = state.index;
+    const saved = await persist({ index, primary_label: primary, secondary_labels: secondary,
+                                  annotation_status: "labeled" });
+    if (saved) nextAfterSave(index, `Saved: ${primary}.`);
+  }
+
+  function choosePrimary(label) {
+    if (state.pass === "fast") saveCurrent(label, []);
+    else {
+      state.primary = label;
+      state.secondary.delete(label);
+      if (label === "other") state.secondary.clear();
+      renderWork();
+    }
+  }
+
+  function toggleSecondary(label) {
+    if (state.pass !== "review" || state.mode !== "multi") return;
+    if (label === "other" || label === state.primary) return;
+    if (state.primary === "other") state.primary = "";
+    state.secondary.has(label) ? state.secondary.delete(label) : state.secondary.add(label);
+    renderWork();
+  }
+
+  async function setStatus(status) {
+    const index = state.index;
+    const saved = await persist({ index, primary_label: state.primary,
+                                  secondary_labels: [...state.secondary], annotation_status: status });
+    if (saved) nextAfterSave(index, status === "skipped" ? "Skip saved." : "Review flag saved.");
+  }
+
+  async function undo() {
+    if (!state.history.length || state.busy) return;
+    const previous = state.history.pop();
+    const success = await persist(previous, false);
+    if (success) {
+      loadItem(previous.index);
+      notice("Previous change undone.", true);
+    }
+    else state.history.push(previous);
+  }
+
+  async function beginReview() {
+    const enabledMulti = state.mode === "single";
+    if (state.mode === "single") {
+      try {
+        const result = await post("/api/config", {
+          labels: state.labels, mode: "multi", text_column: state.text_column
+        });
+        applyData(result);
+      } catch (error) { notice(error.message); return; }
+    }
+    state.pass = "review";
+    state.reviewed = new Set();
+    const first = state.items.findIndex(item => item.annotation_status !== "skipped");
+    loadItem(first >= 0 ? first : 0);
+    notice(enabledMulti
+      ? "Multi-label review is on. Existing primary labels are unchanged."
+      : "Review pass started.", true);
+  }
+
+  async function openRecent(name) {
+    try {
+      applyData(await post("/api/open", { name }));
+      state.history = [];
+      state.reviewed = new Set();
+      state.pass = state.mode === "single" ? "fast" : "review";
+      if (state.configured) {
+        show("work");
+        loadItem(Math.max(0, state.items.findIndex(item => !item.annotation_status)));
+      } else show("setup");
+    } catch (error) { notice(error.message); }
+  }
+
+  async function importFile(file) {
+    if (!file) return;
+    if (!/\.(csv|json)$/i.test(file.name)) { notice("Choose a CSV or JSON file."); return; }
+    notice("Opening local copy…", true);
+    try {
+      const response = await fetch("/api/import", { method: "POST",
+        headers: { "X-Filename": encodeURIComponent(file.name) }, body: file });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Could not open file");
+      applyData(result);
+      state.history = [];
+      state.reviewed = new Set();
+      show("setup");
+      notice("");
+    } catch (error) { notice(error.message); }
+  }
+
+  async function saveSetup() {
+    const labels = $("label-names").value.split(/\r?\n|,/).map(value => value.trim()).filter(Boolean);
+    const mode = document.querySelector('input[name="label-mode"]:checked').value;
+    try {
+      const result = await post("/api/config", {
+        labels, mode, text_column: $("text-column").value
+      });
+      applyData(result);
+      state.pass = mode === "single" ? "fast" : "review";
+      state.reviewed = new Set();
+      show("work");
+      loadItem(Math.max(0, state.items.findIndex(item => !item.annotation_status)));
+      notice("");
+    } catch (error) { notice(error.message); }
+  }
+
+  $("new-file").onclick = () => show("home");
+  $("choose-file").onclick = () => $("file-input").click();
+  $("choose-folder").onclick = () => $("folder-input").click();
+  $("file-input").onchange = event => { importFile(event.target.files[0]); event.target.value = ""; };
+  $("folder-input").onchange = event => {
+    state.folderFiles = [...event.target.files].filter(file => /\.(csv|json)$/i.test(file.name));
+    $("folder-files").replaceChildren(...state.folderFiles.map((file, index) => {
+      const option = document.createElement("option");
+      option.value = String(index);
+      option.textContent = file.webkitRelativePath || file.name;
+      return option;
+    }));
+    $("folder-pick").hidden = !state.folderFiles.length;
+    if (!state.folderFiles.length) notice("No CSV or JSON files found in that folder.");
+    event.target.value = "";
+  };
+  $("use-folder-file").onclick = () => importFile(state.folderFiles[Number($("folder-files").value)]);
+  $("drop").ondragover = event => { event.preventDefault(); $("drop").classList.add("over"); };
+  $("drop").ondragleave = () => $("drop").classList.remove("over");
+  $("drop").ondrop = event => {
+    event.preventDefault(); $("drop").classList.remove("over");
+    importFile([...event.dataTransfer.files].find(file => /\.(csv|json)$/i.test(file.name)));
+  };
+  $("setup-back").onclick = () => show(state.configured ? "work" : "home");
+  $("start").onclick = saveSetup;
+  $("settings").onclick = () => show("setup");
+  $("fast-mode").onclick = () => { if (state.mode === "single") { state.pass = "fast"; renderWork(); } };
+  $("review-mode").onclick = beginReview;
+  $("previous").onclick = () => loadItem(state.index - 1);
+  $("next").onclick = () => loadItem(state.index + 1);
+  $("skip").onclick = () => setStatus("skipped");
+  $("flag").onclick = () => setStatus("needs_review");
+  $("undo").onclick = undo;
+  $("save").onclick = () => saveCurrent();
+
+  addEventListener("keydown", event => {
+    if (state.view !== "work" || state.busy || event.ctrlKey || event.altKey || event.metaKey) return;
+    if ($("messages-menu").contains(document.activeElement) || $("more-menu").contains(document.activeElement)) return;
+    if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)) return;
+    const key = event.key.toLowerCase();
+    const digit = /^(?:Digit|Numpad)([1-9])$/.exec(event.code);
+    const number = digit ? Number(digit[1]) : Number(event.key);
+    const validNumber = event.shiftKey
+      ? Boolean(digit && number <= state.labels.length)
+      : Number.isInteger(number) && number >= 1 && number <= state.labels.length;
+    if (validNumber) {
+      event.preventDefault();
+      event.shiftKey ? toggleSecondary(state.labels[number - 1]) : choosePrimary(state.labels[number - 1]);
+    } else if (key === "enter" && state.pass === "review") { event.preventDefault(); saveCurrent(); }
+    else if (key === "s") { event.preventDefault(); setStatus("skipped"); }
+    else if (key === "r") { event.preventDefault(); setStatus("needs_review"); }
+    else if (key === "u") { event.preventDefault(); undo(); }
+    else if (key === "arrowleft") { event.preventDefault(); loadItem(state.index - 1); }
+    else if (key === "arrowright") { event.preventDefault(); loadItem(state.index + 1); }
+  });
+
+  api("/api/state").then(value => {
+    applyData(value);
+    if (!state.active) show("home");
+    else {
+      state.pass = state.mode === "single" ? "fast" : "review";
+      show(state.configured ? "work" : "setup");
+      if (state.configured) loadItem(Math.max(0, state.items.findIndex(item => !item.annotation_status)));
+    }
+  }).catch(error => notice(error.message));
+</script>
+</body>
+</html>

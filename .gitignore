@@ -1,0 +1,7 @@
+working/
+__pycache__/
+*.py[cod]
+.venv/
+*.csv
+*.json
+*.jsonl

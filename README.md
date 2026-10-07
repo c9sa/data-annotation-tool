@@ -1,6 +1,6 @@
 # Data Annotation Tool
 
-Local tool to label text from CSV & JSON files.
+Tired of labelling inside a messy JSON or CSV? I gotchu
 
 ## Requirements
 

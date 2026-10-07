@@ -17,26 +17,22 @@ python app.py
 
 ## Load a file
 
-Drop a CSV or JSON file into the page, or select a file.
+Drop a CSV or JSON file into the page, or select a file
 
-- CSV files must have a header row.
-- JSON files must contain an array of objects.
+- CSV files must have a header row
+- JSON files must contain an array of objects
 
-Select the text column. Configure up to nine labels. Select single-label or multiple-label mode.
+Select the text column. Configure up to nine labels. Select single-label or multiple-label mode
 
 ## Labelling Modes
 
 ### Fast pass
 
-Uses number keys & automatically iterates to the next asample
+Uses number keys & automatically iterates to the next sample
 
 ### Review
 
-For multi-labels. Disables auto iteration.
-
-Add secondary labels if necessary.
-
-Press Enter to save and continue.
+For multi-labels. Disables auto iteration
 
 
 ### Keyboard shortcuts
@@ -54,15 +50,15 @@ Press Enter to save and continue.
 
 ## Save and export
 
-The tool saves a working copy in `working/`. It does not change the source file.
+The tool saves a working copy in `working/`. It does not change the source file
 
-Use the recent-session list to continue a saved session.
+Use the recent-session list to continue a saved session
 
 Open More, then Export:
 
-- **Labeled file:** Export all rows with their labels and annotation status.
-- **Training CSV:** Export completed rows as `text,label`. The label is the primary label.
+- **Labeled file:** Export all rows with their labels and annotation status
+- **Training CSV:** Export completed rows as `text,label`. The label is the primary label
 
 ## Note
 
-If a file has secondary labels, you cannot change it to single-label mode.
+If a file has secondary labels, you cannot change it to single-label mode
